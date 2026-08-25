@@ -2,63 +2,55 @@
 
 ## Mission
 
-THYROROS is an external runtime reference monitor for autonomous AI agents. It translates a human
-task and policy into an immutable Run Contract, places the agent inside a bounded execution
-environment, mediates side effects, independently verifies results, and emits evidence describing
-what actually happened.
+THYROROS is intended to put a policy boundary around autonomous agents. A Run Contract describes the
+files, network destinations, executables, secrets, time limits, and effect classes available to a
+run. Later components will use the same contract to launch, supervise, verify, and record the run.
 
 ## Product statement
 
-> An agent runtime gate that controls authority at the point of effect and records a verifiable
-> flight receipt.
+THYROROS is an agent runtime gate with an execution record.
 
 ## Why this is a separate project
 
-THYROROS is not a subsystem of any single agent. It must be capable of supervising heterogeneous
-coding agents, tool runners, MCP clients, and future autonomous systems without owning their planner,
-memory, provider routing, or product identity.
-
-This separation prevents the monitored agent from becoming its own final policy authority.
+The runtime is kept separate from any particular agent or model. Coding agents, tool runners, and
+MCP clients should be able to use the same contract format without sharing planner, memory, or model
+provider code.
 
 ## Goals
 
-1. Make authority explicit, typed, finite, revocable, and digest-bound.
-2. Remove ambient credentials and user permissions from agent workspaces.
-3. Enforce child-authority subset semantics across processes, tools, network, files, secrets, time,
-   and effect class.
-4. Separate observation, decision, enforcement, verification, learning, and UI.
-5. Preserve enough evidence to reconstruct the decision and execution path.
-6. Support safe degradation without silently weakening protection.
-7. Evaluate both security and benign utility.
+1. Define run authority in a machine-readable contract.
+2. Prevent delegated runs from gaining authority that the parent did not have.
+3. Keep long-lived credentials out of agent workspaces.
+4. Mediate filesystem, process, network, tool, and secret use through explicit interfaces.
+5. Verify results outside the worker that produced them.
+6. Record enough information to reconstruct what was allowed and what happened.
+7. Refuse unsupported enforcement modes instead of silently falling back to unrestricted execution.
 
 ## Non-goals
 
-- perfect classification of malicious prompts;
-- general malware-family naming;
-- guaranteed protection after administrator or kernel compromise;
-- replacing a full enterprise EDR in early releases;
-- making a behavioral model or an LLM the policy authority;
-- treating logs as proof when the monitor can miss the relevant event;
-- forcing every agent implementation into one framework.
+- classifying every malicious prompt;
+- identifying malware families;
+- protecting a host after administrator or kernel compromise;
+- replacing an enterprise EDR in early releases;
+- using an LLM or anomaly model as the final authorization decision;
+- forcing all agents into one framework.
 
 ## Initial platform
 
-Windows is first because it provides the isolation, process-control, telemetry, and network-policy
-primitives needed to measure a realistic desktop-agent protection boundary: AppContainer, Job
-Objects, restricted tokens, process mitigations, ETW, and WFP.
+Windows is the first enforcement target. The planned backend work evaluates AppContainer, Job
+Objects, restricted tokens, process mitigations, ETW, WFP, and the newer `CreateProcessInSandbox`
+APIs where available.
 
-The initial implementation deliberately starts with contracts and a staging workspace before a
-driver.
+Contract validation and policy checks come first; OS enforcement is a later milestone.
 
 ## Success criteria
 
-R0 succeeds when:
+For the contract core:
 
-- a Run Contract is strict, deterministic, and digestible;
-- malformed or ambiguous input is refused;
-- child authority cannot widen a parent contract;
-- every refusal has a stable reason code;
-- tests prove both fail-closed behavior and recovery from over-restriction.
+- malformed or ambiguous contracts are rejected;
+- canonical digests are stable;
+- a child contract cannot widen its parent;
+- denials use stable reason codes;
+- tests cover both rejection and valid narrowing.
 
-Later phases must define separate release gates. No phase inherits a security claim merely because
-the previous phase passed.
+Later milestones define their own enforcement tests before adding stronger security claims.

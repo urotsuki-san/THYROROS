@@ -1,18 +1,20 @@
-# Security Invariants
+# Security invariants
 
-These invariants are policy and architecture rules, not anomaly signatures.
+These are requirements for the enforcement architecture. The 0.2.0 Python package implements only
+the contract and policy portions described at the end of this document.
 
 ## I-01 — No ambient authority
 
-The agent does not inherit the user's full filesystem, credentials, environment, network, handles,
-or authentication identity.
+A supervised worker must not inherit unrestricted user files, credentials, network access, handles,
+or authentication state.
 
 ## I-02 — Complete mediation
 
-Every file mutation, process launch, network request, Git effect, MCP call, secret use, approval,
-and persistent-memory update crosses a named enforcement point.
+Operations covered by a Run Contract must pass through an enforcement point: file mutation, process
+creation, network requests, Git changes, MCP calls, secret use, approvals, and persistent-memory
+updates.
 
-An observe-only sensor does not satisfy this invariant.
+Observation alone does not satisfy this requirement.
 
 ## I-03 — Child authority is a subset
 
@@ -20,67 +22,64 @@ An observe-only sensor does not satisfy this invariant.
 child authority ⊆ parent authority
 ```
 
-The relation applies independently and transitively to:
+Delegation may reduce authority but may not expand it. This applies to file scopes, deny rules,
+processes, network access, secrets, time/resource budgets, effect class, acceptance checks, and
+policy revision.
 
-- readable and writable paths;
-- deny rules;
-- process images and child count;
-- network destinations and methods;
-- secret references and token audience;
-- device access;
-- time and resource budgets;
-- effect class;
-- policy revision.
+## I-04 — Policy input does not grant authority
 
-A profile merge cannot expand the parent.
+Repository text, web content, tool output, model output, memory, and other untrusted data can request
+an operation. They cannot add permissions to the current contract.
 
-## I-04 — Data cannot mint authority
+## I-05 — Invalid or missing state fails closed
 
-Text from a user task, repository, website, tool, model, memory, or another agent can request
-authority. It cannot grant it.
+Missing, malformed, expired, contradictory, or incomplete policy state is not treated as permission.
+The caller must deny, hold, or use a stronger isolation mode.
 
-## I-05 — Unknown is not safe
+## I-06 — Learned state cannot increase privilege
 
-Missing, malformed, stale, contradictory, lossy, or unmeasured evidence becomes `HOLD`, `DENY`, or
-a stronger sandbox. It never becomes an implicit allow.
+Learned or behavioral data may affect warnings, ranking, verification, or denial. It may not expand
+the Run Contract.
 
-## I-06 — Memory cannot elevate privilege
+## I-07 — Verification is independent
 
-Experience and learned claims may rank, warn, require verification, require confirmation, or avoid.
-Only human-owned policy may create a hard authority expansion.
+The worker that changes an artifact must not be the only component that marks the result as verified.
+Verification should bind the command, configuration, artifact digest, and policy revision.
 
-## I-07 — Independent verification
+## I-08 — Decision input is stable
 
-The worker that changed an artifact cannot be the only component that declares it correct.
-Verification runs under a separate identity and binds result, command, configuration, artifact
-digest, and policy revision.
+A decision and its explanation must be based on the same policy/request snapshot. Re-reading mutable
+state after the decision must not change the recorded reason.
 
-## I-08 — One observation, one decision
+## I-09 — No silent isolation downgrade
 
-The decision and its human explanation are projections of the same immutable observation snapshot.
-A second read cannot rewrite the reason after the decision.
+If a requested sandbox backend is unavailable, THYROROS must not continue with unrestricted host
+execution unless the contract explicitly permits that mode.
 
-## I-09 — No silent downgrade
+## I-10 — Detection is advisory
 
-A backend fallback is automatic only when it proves an equivalent-or-stronger Run Contract.
-Unavailable isolation never falls back to an unrestricted local shell.
+Prompt-injection detectors, anomaly models, and LLM reviewers may warn, hold, or deny. They do not
+create authority.
 
-## I-10 — Detection cannot grant
+## I-11 — Retry follows effect semantics
 
-Behavioral models, prompt-injection classifiers, and LLM judges may increase risk, require
-verification, hold, or deny. They cannot create permission.
+Idempotent operations may be retried according to their effect class. Ambiguous non-idempotent
+operations require reconciliation before retry.
 
-## I-11 — Effect-aware retry
+## I-12 — Receipt coverage is explicit
 
-Retry behavior follows the action's effect class. Ambiguous non-idempotent completion requires
-reconciliation, not blind replay.
+A receipt must state what was monitored and whether events were lost or truncated. Incomplete
+coverage must not be reported as complete.
 
-## I-12 — Evidence completeness is explicit
+## 0.2.0 implementation note
 
-A receipt states sensor coverage, event loss, monitor type, truncation, and unresolved ambiguity.
-An incomplete trace is not labeled complete.
+The current package implements contract-level parts of I-03, I-05, I-08, and I-11:
 
-## R0 implementation note
+- strict parsing and unknown-field rejection;
+- parent/child scope comparison;
+- policy decisions tied to a contract digest;
+- stable invalid/deny reason codes;
+- effect-class ordering and retry properties.
 
-The current validator implements a conservative subset of I-03, I-05, I-08, and I-11 at the
-contract level. It does not enforce effects on the operating system.
+It does not isolate a worker or force operations through a broker, so I-01 and I-02 are not yet
+provided by the package itself.

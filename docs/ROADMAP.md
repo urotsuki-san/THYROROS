@@ -1,119 +1,134 @@
 # Roadmap
 
-Progress is gated by measured evidence rather than dates.
+Milestones are capability-based rather than date-based. Each milestone lists the work that must be
+implemented and tested before it is considered complete.
 
-## R0 — Contract core
+## R0 — Contract core: complete
 
-Current milestone.
+Implemented:
 
-Deliverables:
+- Run Contract v1 schema and semantic validation;
+- rejection of duplicate keys, unknown fields, path traversal, malformed digests, and non-deny
+  network defaults;
+- canonical JSON and SHA-256 digests;
+- effect classes and stable reason codes;
+- parent/child scope comparison for paths and network rules;
+- bounded contract loading, packaged schema, examples, and repository checks.
 
-- strict Run Contract schema;
-- canonical digest;
-- effect classes;
-- authority subset comparison;
-- typed reason codes;
-- inert examples;
-- repository verification.
+Completion checks:
 
-Exit gate:
+- valid child narrowing passes;
+- widening is rejected, with an example path for path-scope expansion;
+- canonical output does not depend on object key order;
+- rejection tests have matching valid-use tests where appropriate.
 
-- duplicate keys, unknown fields, path traversal, malformed digests, unsafe network defaults, and
-  authority widening are rejected;
-- reverse tests demonstrate that valid narrowing still passes;
-- output is deterministic across JSON key order.
+## R0.5 — Reference policy engine: complete in 0.2.0
+
+Implemented:
+
+- `PolicyEngine` bound to a validated contract digest;
+- file read/write checks with deny precedence;
+- HTTPS method/host/port/path checks;
+- executable basename and child-count checks;
+- secret-reference and effect-class checks;
+- lease and network-budget checks;
+- CLI and Python API;
+- wheel/sdist build and installation checks;
+- CI across supported Python versions and desktop platforms.
+
+The 0.2.0 engine evaluates requests. It does not enforce them at the operating-system level.
 
 ## R1 — Windows constrained launcher
 
-Deliverables:
+Planned work:
 
-- host capability probe;
-- `CreateProcessInSandbox` API spike;
-- AppContainer / Job Object fallback adapter;
-- restricted-token compatibility adapter;
-- staging workspace;
-- sanitized environment and handle list;
-- process absence proof.
+- host capability detection;
+- `CreateProcessInSandbox` evaluation where supported;
+- AppContainer and Job Object backend;
+- restricted-token compatibility backend;
+- isolated staging workspace and resource resolution;
+- reduced environment and controlled inherited handles;
+- process counting and cleanup.
 
-Exit gate:
+Completion checks:
 
-- an inert malicious fixture cannot read the user profile, escape the staging root, use ambient
-  credentials, access the network, or leave a child process after lease closure;
-- backend unavailability never starts unrestricted execution.
+- test fixtures cannot read outside granted paths, use ambient credentials, access ungranted network
+  destinations, or leave child processes after shutdown;
+- missing isolation support fails closed instead of starting an unrestricted process.
 
 ## R2 — Mediated effects
 
-Deliverables:
+Planned work:
 
-- action identity;
-- effect-aware state machine;
-- file / Git broker;
-- network broker;
-- MCP gateway;
+- action identifiers and effect-state tracking;
+- file/Git broker;
+- network broker with DNS and redirect handling;
+- MCP gateway with server/schema identity;
 - secret and identity broker;
-- one-shot authority leases.
+- one-shot leases and atomic counters.
 
-Exit gate:
+Completion checks:
 
-- every allowed side effect has a contract reference and action identity;
-- ambiguous `AT_MOST_ONCE` completion reconciles rather than replays;
-- tool schema drift invalidates prior approval;
-- raw credentials never enter the sandbox.
+- each allowed effect is tied to a contract and action identifier;
+- ambiguous `AT_MOST_ONCE` completion is reconciled before retry;
+- tool schema changes invalidate prior approval;
+- raw long-lived credentials stay outside the sandbox.
 
 ## R3 — Independent verification and receipts
 
-Deliverables:
+Planned work:
 
-- verifier identity separate from worker;
-- immutable acceptance commands;
-- Change Capsule;
-- controlled apply;
-- chained event segments;
+- verifier separate from the worker;
+- fixed acceptance commands;
+- Change Capsule and controlled apply;
+- chained event records;
 - signed receipt;
 - in-toto export.
 
-Exit gate:
+Completion checks:
 
-- fake stdout, modified tests, missing sensor coverage, or a worker-authored receipt cannot create a
-  verified PASS.
+- worker stdout alone cannot produce a verified PASS;
+- modified tests, missing coverage, or worker-authored receipt data are detected.
 
 ## R4 — Stronger Windows enforcement
 
-Deliverables:
+Planned work:
 
 - WFP enforcement evaluation;
-- optional minifilter research;
-- reparse-point, alternate-data-stream, memory-mapped-I/O, raw-socket, and TOCTOU fixtures;
-- anti-tamper and recovery drills.
+- optional filesystem minifilter research;
+- tests for reparse points, alternate data streams, hard links, memory-mapped I/O, raw sockets, and
+  TOCTOU races;
+- tamper and recovery tests.
 
-Exit gate:
+Completion checks:
 
-- broker-bypass attempts fail in the supported protection grade;
-- unsupported paths are explicitly downgraded or refused.
+- bypass tests fail for the advertised protection grade;
+- unsupported operations are refused or reported at a lower grade.
 
 ## R5 — Behavioral evidence
 
-Deliverables:
+Planned work:
 
-- behavior-evidence adapter interface;
-- agent / repository / task baselines;
-- calibrated uncertainty;
-- drift and rollback;
-- sensor-health-aware learning.
+- adapter interface for behavioral signals;
+- agent/repository/task baselines;
+- uncertainty calibration;
+- drift handling and rollback;
+- sensor-health tracking.
 
-Exit gate:
+Completion checks:
 
-- a failed or missing model cannot grant authority;
-- deterministic policy remains safe when behavioral evidence is unavailable;
-- utility, false actions per device-day, and subgroup worst cases are reported separately.
+- behavioral models cannot grant authority;
+- policy checks remain usable when behavioral signals are unavailable;
+- evaluation reports utility and false-action rates separately.
 
 ## R6 — Additional platforms and adapters
 
-- Linux namespace / Landlock / seccomp / cgroup backend;
-- macOS sandbox / Endpoint Security evaluation;
-- additional native agent adapters;
+- Linux namespaces, Landlock, seccomp, and cgroups;
+- macOS sandbox and Endpoint Security evaluation;
+- additional agent adapters;
 - cross-platform replay and attestation.
 
 ## Commit policy
 
-Repository history should remain intentionally compact. Owner-directed work may land directly on the requested branch. Each commit must be a complete, verified logical change; checkpoint, merge-noise, and formatting-only history should not be created.
+Keep commits focused and verified. Avoid WIP/checkpoint commits, merge noise, and formatting-only
+history when a change can be included with the work it belongs to.

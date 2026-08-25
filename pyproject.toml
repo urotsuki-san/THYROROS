@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thyroros"
+version = "0.2.0"
+description = "Run Contract validation and policy checks for autonomous agents"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [
+  { name = "urotsuki-san" }
+]
+keywords = [
+  "ai-agents",
+  "authorization",
+  "policy-engine",
+  "reference-monitor",
+  "security"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Security",
+  "Typing :: Typed"
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/urotsuki-san/THYROROS"
+Documentation = "https://github.com/urotsuki-san/THYROROS#readme"
+Source = "https://github.com/urotsuki-san/THYROROS"
+Issues = "https://github.com/urotsuki-san/THYROROS/issues"
+Security = "https://github.com/urotsuki-san/THYROROS/security/policy"
+
+[project.scripts]
+thyroros = "thyroros.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+thyroros = ["py.typed", "data/*.json"]

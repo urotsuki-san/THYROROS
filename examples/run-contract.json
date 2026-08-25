@@ -1,0 +1,73 @@
+{
+  "schema": "thyroros.run-contract",
+  "version": 1,
+  "run": {
+    "id": "run_bootstrap_001",
+    "task_digest": "sha256:fe2797272c40f39922fcd92cdb082792fc9fff19eea8cac99e9d177f73af9dc0",
+    "created_at": "2026-08-24T09:20:00Z",
+    "expires_at": "2026-08-24T10:20:00Z"
+  },
+  "subject": {
+    "repository": "urotsuki-san/THYROROS",
+    "base_revision": "2aff096320863d0c17126b8607009a393f73afea",
+    "workspace_digest": "sha256:e172805f371a975eb6dd76483ff57a0ece9a883a6abe292b7de96e3dac150041"
+  },
+  "authority": {
+    "read": [
+      "workspace/**"
+    ],
+    "write": [
+      "workspace/src/**",
+      "workspace/tests/**"
+    ],
+    "deny": [
+      "**/.env",
+      "**/secrets/**",
+      "user-profile/**"
+    ],
+    "network": {
+      "default": "deny",
+      "allow": [
+        {
+          "methods": [
+            "GET"
+          ],
+          "scheme": "https",
+          "host": "api.github.com",
+          "port": 443,
+          "path_prefix": "/repos/urotsuki-san/THYROROS/"
+        }
+      ]
+    },
+    "process": {
+      "allowed_images": [
+        "git.exe",
+        "python.exe",
+        "rg.exe"
+      ],
+      "max_children": 16
+    },
+    "secrets": [],
+    "maximum_effect": "WRITE_IDEMPOTENT"
+  },
+  "budget": {
+    "wall_seconds": 1800,
+    "memory_mib": 4096,
+    "network_requests": 20
+  },
+  "acceptance": {
+    "commands": [
+      {
+        "argv": [
+          "python",
+          "scripts/check_repo.py"
+        ],
+        "timeout_seconds": 600
+      }
+    ],
+    "forbidden_diff": [
+      ".github/workflows/**",
+      "security-policy/**"
+    ]
+  }
+}

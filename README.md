@@ -4,252 +4,294 @@
 
 ### Agent Runtime Gate & Flight Recorder
 
-**External reference monitor for autonomous AI agents, built around immutable authority contracts, mediated effects, and verifiable receipts.**
+**Run Contract validation and policy checks for autonomous AI agents.**
 
 <img src="docs/assets/readme/thyroros-showcase-hero-v1.png" alt="THYROROS showcase" width="100%">
 
 <p>
-  <img alt="Status R0" src="https://img.shields.io/badge/status-R0%20research%20scaffold-0f766e?style=for-the-badge">
-  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
-  <img alt="Platform Windows first" src="https://img.shields.io/badge/platform-Windows%20first-334155?style=for-the-badge&logo=windows11&logoColor=white">
+  <img alt="Version 0.2.0 alpha" src="https://img.shields.io/badge/version-0.2.0%20alpha-0f766e?style=for-the-badge">
+  <img alt="Python 3.11 to 3.14" src="https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="Runtime dependencies zero" src="https://img.shields.io/badge/runtime%20deps-0-334155?style=for-the-badge">
   <a href="https://github.com/urotsuki-san/THYROROS/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/urotsuki-san/THYROROS/ci.yml?branch=main&style=for-the-badge&label=CI"></a>
+  <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-0f766e?style=for-the-badge"></a>
 </p>
 
-**[Quick start](#quick-start)** · **[Architecture](#runtime-architecture)** · **[Threat model](docs/THREAT_MODEL.md)** · **[Security](SECURITY.md)** · **[Research](docs/RESEARCH.md)**
+**[Quick start](#quick-start)** · **[Policy engine](#reference-policy-engine)** · **[Python API](#python-api)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Security](SECURITY.md)**
 
-<sub>Pronunciation: <strong>/θi.roˈros/</strong> — roughly <strong>thee-ro-ROSS</strong> · Japanese project reading: <strong>シロロス</strong> · Status: <strong>research scaffold</strong></sub>
+<sub>Pronunciation: <strong>/θi.roˈros/</strong> — roughly <strong>thee-ro-ROSS</strong> · Japanese project reading: <strong>シロロス</strong> · Greek <strong>θυρωρός</strong>: doorkeeper / gatekeeper</sub>
 
 </div>
 
 ---
 
 > [!IMPORTANT]
-> **THYROROS is currently an R0 research scaffold, not an endpoint-protection product.**
+> **THYROROS 0.2.0 validates contracts and policy requests. It is not a sandbox.**
 >
-> The repository currently provides deterministic Run Contract validation and authority-comparison primitives. It does **not yet** provide OS sandbox enforcement, MCP interception, credential brokering, or tamper-resistant audit guarantees.
+> A launcher or broker can use its decisions to enforce a Run Contract. THYROROS 0.2.0 does not
+> intercept actions, isolate processes, handle credentials, or produce tamper-resistant receipts.
 
-THYROROS controls the boundary around an AI agent rather than asking one model to decide whether another model “looks safe.” Its long-term security thesis is:
-
-> **Even when an agent is manipulated, it must not be able to perform effects outside the authority granted by its Run Contract.**
-
-## What THYROROS is designed to do
-
-<table>
-<tr>
-<td width="50%" valign="top">
-<h3>🚪 Immutable Run Contracts</h3>
-Authority is declared before execution: filesystem scope, network destinations, process limits, secrets, time, budgets, and maximum effect class.
-</td>
-<td width="50%" valign="top">
-<h3>🧱 External security boundary</h3>
-The monitored agent is not its own final policy authority. Policy, leases, enforcement, verification, and evidence live outside the planner.
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<h3>🔀 Mediated effects</h3>
-File mutation, process creation, network access, Git effects, MCP calls, secret use, and persistent-memory updates are intended to cross named enforcement points.
-</td>
-<td width="50%" valign="top">
-<h3>🧾 Verifiable flight receipts</h3>
-Execution evidence is designed to bind the run contract, observed effects, verification result, coverage, and artifact digests without letting the worker certify itself.
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<h3>🛑 Fail-closed by contract</h3>
-Unknown, missing, stale, contradictory, or weaker fallback evidence is not silently converted into permission.
-</td>
-<td width="50%" valign="top">
-<h3>🧪 Independent verification</h3>
-Agent stdout is not proof. Acceptance checks are designed to run outside the worker and bind results to the exact artifacts and policy revision being evaluated.
-</td>
-</tr>
-</table>
-
-## Run Contract: authority before execution
-
-The R0 contract core makes authority explicit and machine-checkable before platform enforcement is introduced.
-
-```text
-Human task + owner policy
-          │
-          ▼
-     Run Contract
-          │
-          ├─ read / write scope
-          ├─ process authority
-          ├─ network allowlist
-          ├─ secret references
-          ├─ resource ceilings
-          ├─ maximum effect class
-          └─ acceptance commands
-          │
-          ▼
-   Agent execution
-```
-
-The central conservation rule is:
+Delegated runs follow one rule:
 
 ```text
 child authority ⊆ parent authority
 ```
 
-A child process, sub-agent, adapter, learned memory entry, or model decision may request less authority. It cannot widen the parent contract.
+A child contract may narrow its parent contract, but it cannot add authority.
+
+## What is usable today
+
+THYROROS 0.2.0 can:
+
+- validate Run Contract v1 JSON and calculate its canonical SHA-256 digest;
+- compare parent and child contracts by path-scope meaning rather than string equality;
+- check file, HTTPS, executable, secret-reference, and effect-class requests;
+- return stable `ALLOW`, `DENY`, and `HOLD` results from the CLI or Python API.
+
+The runtime package has no third-party dependencies.
 
 ## Quick start
 
-### PowerShell
-
-```powershell
-$env:PYTHONPATH = "src"
-python -m thyroros name
-python -m thyroros contract validate examples/run-contract.json
-python -m thyroros contract digest examples/run-contract.json
-python scripts/check_repo.py
-```
-
-### Linux / macOS development host
+### Install from a checked-out repository
 
 ```bash
-PYTHONPATH=src python -m thyroros name
-PYTHONPATH=src python -m thyroros contract validate examples/run-contract.json
-PYTHONPATH=src python -m thyroros contract digest examples/run-contract.json
-PYTHONPATH=src python scripts/check_repo.py
+python -m pip install .
+thyroros --version
 ```
 
-Expected validation shape:
+For source-tree development without installation:
+
+```bash
+# PowerShell
+$env:PYTHONPATH = "src"
+
+# Linux / macOS
+export PYTHONPATH=src
+```
+
+### Validate and digest a contract
+
+```bash
+thyroros contract validate examples/run-contract.json
+thyroros contract digest examples/run-contract.json
+thyroros contract validate examples/run-contract.json --json
+```
+
+Expected text output:
 
 ```text
 PASS thyroros.run-contract v1
 digest sha256:...
 ```
 
-## Runtime architecture
+Use `-` instead of a file path to read a contract from standard input. Input is limited to 1 MiB.
 
-The intended product boundary separates observation, decision, enforcement, verification, learning, and UI.
+### Evaluate a file request
+
+The bundled example uses fixed timestamps, so this command supplies an explicit evaluation time:
+
+```bash
+thyroros authorize file examples/run-contract.json \
+  --operation read \
+  --path workspace/src/thyroros/cli.py \
+  --at 2026-08-24T09:30:00Z \
+  --json
+```
+
+```json
+{
+  "allowed": true,
+  "code": "file_allowed",
+  "contract_digest": "sha256:...",
+  "decision": "ALLOW",
+  "matched_rule": "workspace/**",
+  "message": "read is admitted by the matched scope"
+}
+```
+
+### Evaluate an HTTPS request
+
+```bash
+thyroros authorize network examples/run-contract.json \
+  --method GET \
+  --url "https://api.github.com/repos/urotsuki-san/THYROROS/issues?state=open" \
+  --requests-used 0 \
+  --at 2026-08-24T09:30:00Z
+```
+
+This checks the request against the contract. It does not send the request.
+
+## Reference policy engine
+
+| Surface | Contract authority | Check |
+|---|---|---|
+| File | `read`, `write`, `deny` | relative path; deny takes precedence; whole-segment wildcards |
+| Network | `network.allow` | HTTPS; exact host and port; method and segment-aware path prefix |
+| Process | `process.allowed_images`, `max_children` | executable basename and current child count |
+| Secret | `secrets` | exact `secret:<namespace>/<name>` reference |
+| Effect | `maximum_effect` | ordered ceiling from `PURE` through `IRREVERSIBLE` |
+| Lease | `created_at`, `expires_at` | `[created_at, expires_at)` |
+| Budget | `network_requests` | caller-supplied usage against the contract limit |
+
+See [`docs/POLICY_ENGINE.md`](docs/POLICY_ENGINE.md) for request normalization and integration notes.
+
+### Portable path-scope language
+
+Run Contract v1 uses three kinds of path segment:
+
+| Segment | Meaning |
+|---|---|
+| `src` | exact literal segment |
+| `*` | exactly one segment |
+| `**` | zero or more segments |
+
+Wildcards embedded in names such as `*.py` are rejected. Paths are relative and NFC-normalized, use
+forward slashes, and reject traversal, control characters, drive syntax, and Windows reserved device
+names.
+
+The restricted grammar allows exact scope-inclusion checks. For example, `workspace/**` covers
+`workspace/src/**`. If a child scope is broader than its parent, the comparison reports an example
+path that falls outside the parent scope.
+
+## Python API
+
+```python
+from datetime import datetime, timezone
+
+from thyroros import PolicyEngine, load_contract
+
+contract = load_contract("examples/run-contract.json")
+engine = PolicyEngine(contract)
+
+result = engine.authorize_file(
+    "write",
+    "workspace/src/thyroros/policy.py",
+    at=datetime(2026, 8, 24, 9, 30, tzinfo=timezone.utc),
+)
+
+if not result.allowed:
+    raise PermissionError(result.code)
+
+print(result.contract_digest)
+```
+
+`PolicyEngine` copies and freezes the validated contract when it is created. Mutating the caller's
+original object does not change later decisions.
+
+### Compare delegated authority
+
+```python
+from thyroros import compare_child_authority, load_contract
+
+parent = load_contract("parent.json")
+child = load_contract("child.json")
+comparison = compare_child_authority(parent, child)
+
+if not comparison.allowed:
+    for violation in comparison.violations:
+        print(violation.code, violation.path, violation.message)
+```
+
+### Access the packaged schema
+
+```python
+from thyroros import schema_document
+
+schema = schema_document()
+```
+
+The schema in [`schemas/run-contract.schema.json`](schemas/run-contract.schema.json) is also bundled
+in the wheel. Repository checks verify that the two copies are identical.
+
+## CLI contract
+
+| Exit | Meaning |
+|---:|---|
+| `0` | valid document, allowed request, or valid narrowing |
+| `2` | invalid contract or malformed/ambiguous request |
+| `3` | valid request denied, or child authority held |
+| `70` | unexpected internal failure at the CLI boundary |
+
+Available commands:
+
+```text
+thyroros name
+thyroros contract validate|digest|canonicalize|schema
+thyroros authority compare
+thyroros authorize file|network|process|secret|effect
+```
+
+`contract canonicalize --output FILE` and `contract schema --output FILE` create a new file and
+refuse to overwrite an existing path.
+
+## Runtime architecture
 
 ```mermaid
 flowchart LR
     U[Operator / owner policy]
-    C[Run Contract]
-
-    subgraph T[THYROROS trusted control plane]
-      P[Policy + leases]
-      S[Supervisor]
-      B[Brokers]
-      L[Event evidence]
-    end
-
-    A[Agent sandbox]
-    V[Independent verifier]
-    R[Flight receipt]
-    E[External effects]
+    C[Validated Run Contract]
+    P[THYROROS policy engine]
+    A[Launcher / broker adapter]
+    W[Agent worker]
+    E[External effect]
 
     U --> C --> P
-    P --> S --> A
-    P --> B
-    A --> B --> E
-    A --> V
-    B --> L
-    V --> L
-    L --> R
+    W -->|normalized request| A
+    A -->|evaluate| P
+    P -->|ALLOW / DENY + contract digest| A
+    A -->|enforce only ALLOW| E
 ```
 
-The real repository is not intended to be the normal writable workspace. Later milestones stage agent changes in a bounded workspace, verify them independently, then apply only an accepted Change Capsule.
+The policy engine only returns a decision. The launcher or broker is responsible for intercepting the
+operation, resolving the real resource, maintaining counters and process state, and enforcing a
+denial.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+## Security boundary
 
-## Current R0 implementation
+THYROROS 0.2.0 is a policy library, not an enforcement boundary:
 
-R0 is deliberately narrow and dependency-free. It currently provides:
+- a process can bypass it unless an external component intercepts the operation;
+- an OS adapter must resolve logical paths without symlink, junction, reparse-point, or TOCTOU escape;
+- network request counts and child-process counts must be owned by the enforcing component;
+- contracts contain secret references, not raw credentials.
 
-- strict Run Contract validation;
-- duplicate-key and unknown-field rejection;
-- normalized relative-path checks;
-- default-deny network contract validation;
-- canonical SHA-256 document digests;
-- ordered effect classes;
-- conservative child-authority subset checks;
-- deterministic machine-readable reason codes.
+See [`SECURITY.md`](SECURITY.md), [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md), and
+[`docs/SECURITY_INVARIANTS.md`](docs/SECURITY_INVARIANTS.md) before using it in a security-sensitive
+integration.
 
-Current effect classes are:
-
-```text
-PURE
-READ_IDEMPOTENT
-WRITE_IDEMPOTENT
-AT_MOST_ONCE
-RECONCILE_REQUIRED
-IRREVERSIBLE
-```
-
-Ambiguous completion of a non-idempotent effect is designed to reconcile external state rather than blindly replay the action.
-
-## Protection grades
-
-These grades describe future product behavior. **The current R0 repository does not yet satisfy any enforcement grade.**
-
-| Grade | Meaning |
-|---|---|
-| **A — Native Mediated** | Every relevant tool/action is mediated with typed effect, identity, and lease. |
-| **B — Sandboxed CLI** | OS isolation and staging workspace are enforced; semantic mediation is partial. |
-| **C — Observe Only** | Telemetry only. No prevention guarantee. |
-
-A future UI must not present Grade C as equivalent to enforced protection.
-
-## Validation
-
-The repository verification entry point checks the Python source, JSON schemas, example contract, unit tests, and obvious secret-like files:
+## Repository verification
 
 ```bash
-PYTHONPATH=src python scripts/check_repo.py
+python scripts/check_repo.py
 ```
 
-This is engineering validation, not a security certification. A passing unit suite does not prove that a future Windows sandbox, network broker, or filesystem enforcement backend is secure.
+The repository check compiles the Python sources, validates schemas and examples, runs the unit
+tests, builds wheel and source distributions, installs the wheel in an isolated target, checks local
+Markdown links, and scans for common secret-file mistakes.
 
-<details>
-<summary><strong>Build / install for development</strong></summary>
-
-```bash
-git clone https://github.com/urotsuki-san/THYROROS.git
-cd THYROROS
-python -m venv .venv
-```
-
-Windows:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -e .
-.\.venv\Scripts\python.exe scripts\check_repo.py
-```
-
-Linux / macOS:
-
-```bash
-./.venv/bin/python -m pip install -e .
-./.venv/bin/python scripts/check_repo.py
-```
-
-</details>
+CI runs the same command on supported Python versions for Windows, Linux, and macOS.
 
 ## Documentation
 
-| | Document |
+| Document | Purpose |
 |---|---|
-| **Project charter** | [`docs/CHARTER.md`](docs/CHARTER.md) |
-| **Threat model** | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) |
-| **Security invariants** | [`docs/SECURITY_INVARIANTS.md`](docs/SECURITY_INVARIANTS.md) |
-| **Architecture** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-| **Mascot / hero art** | [`docs/MASCOT.md`](docs/MASCOT.md) |
-| **Research references** | [`docs/RESEARCH.md`](docs/RESEARCH.md) |
-| **Roadmap** | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
-| **Security reports** | [`SECURITY.md`](SECURITY.md) |
+| [`docs/CHARTER.md`](docs/CHARTER.md) | project scope and non-goals |
+| [`docs/POLICY_ENGINE.md`](docs/POLICY_ENGINE.md) | policy request semantics |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | assets, adversaries, and trust assumptions |
+| [`docs/SECURITY_INVARIANTS.md`](docs/SECURITY_INVARIANTS.md) | security properties for later enforcement work |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | current and planned components |
+| [`docs/RESEARCH.md`](docs/RESEARCH.md) | design references |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | implementation milestones |
+| [`CHANGELOG.md`](CHANGELOG.md) | release history |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | development notes |
 
 ## Status
 
-**0.1.0.dev0 · R0 research scaffold**
+**0.2.0 alpha · Run Contract validation and policy engine**
 
-The contract core exists today. Windows constrained execution, mediated effects, independent signed receipts, stronger enforcement, behavioral evidence, and additional platforms remain staged research and implementation work.
+Contract validation and policy checks are implemented. OS isolation, mandatory effect mediation,
+credential brokering, independent verification, signed receipts, and stronger platform enforcement
+remain planned work.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+## License
+
+[MIT](LICENSE)

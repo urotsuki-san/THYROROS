@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a change to THYROROS.
+title: "proposal: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, or what limitation are you hitting?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the behavior or API you would like to add.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security impact
+      description: Does this add authority, a trusted component, a parser surface, or an enforcement path?
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests or acceptance criteria
+      description: How should the change be checked?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

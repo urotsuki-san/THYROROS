@@ -2,8 +2,42 @@
 
 ## Architectural rule
 
-Observation, decision, enforcement, verification, learning, and UI must not be collapsed into one
-process or one model call.
+Policy, enforcement, and verification are separate components. The worker being supervised is not
+trusted to enforce its own Run Contract or verify its own output.
+
+## Implemented boundary in 0.2.0
+
+```text
+validated Run Contract
+          |
+          v
++-------------------------------------------+
+| dependency-free policy engine             |
+| validation | scopes | leases | decisions  |
++----------------------+--------------------+
+                       |
+                       | ALLOW / DENY / HOLD
+                       | reason + contract digest
+                       v
+              external adapter / broker
+                       |
+                       | enforce decision
+                       v
+                 requested effect
+```
+
+Implemented modules:
+
+- `canonical.py`: canonical JSON encoding and digest;
+- `scopes.py`: path matching and scope inclusion;
+- `contracts.py`: parsing, validation, and parent/child comparison;
+- `policy.py`: policy checks for concrete requests;
+- `schema.py`: packaged Run Contract v1 schema;
+- `cli.py`: command-line interface and exit codes.
+
+The 0.2.0 package returns policy decisions only. It does not force an agent to use them.
+
+## Target product architecture
 
 ```text
 Operator / owner policy
@@ -13,7 +47,7 @@ Run Contract Compiler
           |
           v
 +------------------------------------------------------+
-| THYROROS trusted control plane                       |
+| THYROROS control plane                               |
 | policy | leases | supervisor | brokers | ledger      |
 +--------+-------------------+-------------------------+
          |                   |
@@ -30,38 +64,29 @@ Agent sandbox          Independent verifier
 
 ## Control plane
 
-The control plane owns:
+Planned control-plane responsibilities include:
 
-- contract compilation and digest;
-- policy revision;
-- capability leases;
-- effect-class decisions;
-- broker authorization;
-- sandbox lifecycle;
+- contract validation and digesting;
+- policy revisions and leases;
+- broker authorization and counters;
+- sandbox and process lifecycle;
 - approval state;
-- evidence sequencing;
-- verification admission;
+- event ordering;
+- verifier admission;
 - receipt signing.
-
-It does not ask the monitored agent to decide these facts.
 
 ## Agent sandbox
 
-The sandbox receives:
+The planned Windows launcher provides a staging workspace, a reduced environment, controlled handle
+inheritance, and an enforceable process lifetime. Raw service credentials are kept outside the
+worker.
 
-- a bounded staging workspace;
-- sanitized environment;
-- no raw provider or service credentials;
-- only the broker channels named by the contract;
-- an enforceable process lifetime;
-- explicit resource ceilings.
-
-The real repository is not the normal write target.
+The real repository is not the normal write target:
 
 ```text
 real repository
       |
-      | immutable snapshot
+      | snapshot
       v
 staging workspace
       |
@@ -69,7 +94,7 @@ staging workspace
       v
 Change Capsule
       |
-      | independent verification
+      | verification
       v
 controlled apply
 ```
@@ -78,59 +103,45 @@ controlled apply
 
 ### File and Git broker
 
-The broker resolves paths against a known root, rejects traversal and reparse-point escapes, and
-applies only a verified Change Capsule to the real repository.
+The file broker maps contract paths to objects under an owned root and must reject traversal,
+reparse-point, link, and race escapes. Git changes are staged and applied after verification.
 
 ### Network broker
 
-Network is default deny. A permitted request is bound to method, scheme, host, port, path scope,
-run, action identity, and lease. Raw credentials do not enter the sandbox.
+The network broker applies the contract's method, scheme, host, port, and path rules. Redirects and
+DNS resolution must remain subject to the same policy. Credentials stay outside the sandbox.
 
 ### MCP gateway
 
-The gateway namespaces servers, pins transport and schema digests, treats annotations as untrusted,
-and invalidates approval when a tool definition changes.
+The MCP gateway identifies tools by server and schema, rather than by tool name alone. A schema
+change invalidates earlier approval.
 
 ### Secret and identity broker
 
-The broker performs an action or returns a short-lived audience-bound lease. It does not copy a
-long-lived token into a prompt, environment variable, workspace, or untrusted MCP server.
+Contracts refer to secrets by name. The broker either performs the authenticated operation or issues
+a short-lived credential for the intended service; long-lived tokens are not copied into the worker.
 
 ## Windows backend direction
 
-The preferred order for evaluation is:
+The current evaluation order is:
 
-1. Microsoft `CreateProcessInSandbox` APIs where platform availability and behavior are proven;
-2. explicit AppContainer + Job Object composition;
-3. restricted token + isolated ACL staging workspace for compatibility;
-4. stronger VM/container backend for hostile or incompatible workloads.
+1. `CreateProcessInSandbox` where the installed Windows version supports the required capabilities;
+2. AppContainer with Job Objects;
+3. restricted token plus an isolated ACL-controlled staging directory for compatibility;
+4. a stronger VM/container backend where the desktop mechanisms are insufficient.
 
-A backend is a candidate only if its actual attestations satisfy the Run Contract.
+An unavailable backend is an error, not permission to run unrestricted.
 
 ## Evidence plane
 
-The eventual event ledger contains:
-
-```text
-sequence
-run identity
-actor
-action identity
-effect class
-resource identity
-policy digest
-origin/information-flow labels
-sensor health
-previous event digest
-event digest
-```
-
-A searchable database is a projection, not the only source of truth.
+A later receipt format is expected to include the run and action identifiers, effect class, resource
+identity, contract digest, counter/sensor state, and a hash chain over events. The exact format is not
+implemented in 0.2.0.
 
 ## Protection grades
 
-- Grade A: semantic mediation of every effect;
-- Grade B: OS-enforced sandbox with partial semantic mediation;
-- Grade C: observe only.
+- Grade A: all relevant effects are mediated by typed brokers;
+- Grade B: OS sandboxing is enforced but some effects lack typed mediation;
+- Grade C: observation only.
 
-The grade is evidence, not branding. Missing coverage lowers the displayed grade.
+THYROROS 0.2.0 does not claim an enforcement grade.
